@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1B2A4A">
+  <title>CYF — En jeu</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div id="offline-banner">📵 Mode hors-ligne — vos réponses seront synchronisées au retour réseau</div>
+
+  <header>
+    <span class="logo">🔍</span>
+    <h1 id="team-header">En jeu</h1>
+    <span class="badge" id="score-badge">0 pts</span>
+  </header>
+
+  <!-- QR Scanner overlay -->
+  <div id="qr-overlay">
+    <video id="qr-video" autoplay playsinline></video>
+    <button class="btn btn-danger" onclick="closeQR()">✕ Fermer</button>
+  </div>
+
+  <main>
+    <!-- Progression -->
+    <div class="card" style="padding:1rem 1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+        <span style="font-weight:700;color:var(--primary)" id="progress-text">Énigme 1 / ?</span>
+        <span style="color:var(--muted);font-size:.9rem" id="timer">00:00</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Énigme courante -->
+    <div id="enigma-container">
+      <div class="enigma-card">
+        <div class="enigma-number" id="enigma-number">Énigme 1</div>
+        <div class="enigma-title" id="enigma-title">Chargement…</div>
+        <div class="enigma-desc"  id="enigma-desc"></div>
+        <div class="enigma-hint"  id="enigma-hint" style="display:none"></div>
+      </div>
+
+      <div class="answer-section">
+        <div class="form-group">
+          <label>Votre réponse</label>
+          <input type="text" id="answer-input" class="answer-input"
+                 placeholder="Entrez votre réponse…"
+                 oninput="this.value=this.value.toUpperCase()"
+                 onkeydown="if(event.key==='Enter') submitAnswer()">
+        </div>
+        <div style="display:flex;gap:.8rem;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-lg" onclick="submitAnswer()" style="flex:1">
+            ✓ Valider
+          </button>
+          <button class="btn btn-outline" onclick="toggleQR()" title="Scanner QR Code">
+            📷 QR
+          </button>
+          <button class="btn btn-outline" onclick="toggleHint()" title="Indice">
+            💡 Indice
+          </button>
+        </div>
+        <div class="answer-feedback" id="feedback"></div>
+      </div>
+    </div>
+
+    <!-- Fin de partie -->
+    <div id="finished-container" style="display:none;">
+      <div class="card" style="text-align:center;padding:3rem 2rem;">
+        <div style="font-size:4rem;margin-bottom:1rem;">🏆</div>
+        <h2 style="color:var(--primary);margin-bottom:1rem;">Félicitations !</h2>
+        <p id="final-score" style="font-size:1.5rem;font-weight:800;color:var(--accent);margin-bottom:2rem;"></p>
+        <a href="index.html" class="btn btn-primary btn-lg">← Retour à l'accueil</a>
+      </div>
+    </div>
+
+    <!-- Classement live -->
+    <div class="card">
+      <div class="card-title">🏅 Classement en direct</div>
+      <ul class="leaderboard" id="leaderboard">
+        <li><span style="color:var(--muted)">Chargement…</span></li>
+      </ul>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script src="js/qrcode.js"></script>
+  <script>
+    // ── État du jeu ──────────────────────────────────────────────
+    const teamId   = localStorage.getItem('cyf_team_id');
+    const teamName = localStorage.getItem('cyf_team_name');
+    const gameId   = localStorage.getItem('cyf_game_id');
+
+    if (!teamId) window.location.href = 'index.html';
+
+    let enigmas      = [];
+    let currentIdx   = 0;
+    let totalScore   = 0;
+    let startTime    = Date.now();
+    let timerInterval;
+
+    document.getElementById('team-header').textContent = teamName || 'En jeu';
+
+    // ── Initialisation ───────────────────────────────────────────
+    async function init() {
+      try {
+        // Charger toutes les énigmes (pour mode hors-ligne)
+        enigmas = await api('/api/enigmas?game_id=' + gameId);
+        if (window.cacheEnigmas) cacheEnigmas(enigmas); // PWA cache
+
+        // Récupérer la progression
+        const progress = await api('/api/scores/progress/' + teamId);
+        const solved = progress.filter(p => p.solved_at).map(p => p.enigma_id);
+        currentIdx = enigmas.findIndex(e => !solved.includes(e.id));
+        if (currentIdx === -1) currentIdx = enigmas.length; // tout résolu
+
+        totalScore = progress.reduce((s, p) => s + (p.points || 0), 0);
+        updateScoreBadge();
+        renderEnigma();
+        startTimer();
+        loadLeaderboard();
+        setInterval(loadLeaderboard, 15000); // refresh toutes les 15s
+      } catch(e) {
+        // Mode hors-ligne : charger depuis le cache
+        const cached = window.getCachedEnigmas ? getCachedEnigmas(gameId) : null;
+        if (cached) { enigmas = cached; renderEnigma(); }
+      }
+    }
+
+    // ── Afficher l'énigme courante ────────────────────────────────
+    function renderEnigma() {
+      if (currentIdx >= enigmas.length) {
+        document.getElementById('enigma-container').style.display = 'none';
+        document.getElementById('finished-container').style.display = 'block';
+        document.getElementById('final-score').textContent = totalScore + ' points';
+        clearInterval(timerInterval);
+        return;
+      }
+      const e = enigmas[currentIdx];
+      document.getElementById('enigma-number').textContent = 'Énigme ' + (currentIdx + 1);
+      document.getElementById('enigma-title').textContent  = e.title;
+      document.getElementById('enigma-desc').textContent   = e.description;
+      const hintEl = document.getElementById('enigma-hint');
+      if (e.hint) { hintEl.textContent = '💡 ' + e.hint; }
+      else { hintEl.style.display = 'none'; }
+      document.getElementById('answer-input').value = '';
+      document.getElementById('answer-input').focus();
+      document.getElementById('progress-text').textContent =
+        'Énigme ' + (currentIdx + 1) + ' / ' + enigmas.length;
+      document.getElementById('progress-fill').style.width =
+        (currentIdx / enigmas.length * 100) + '%';
+      startTime = Date.now();
+    }
+
+    // ── Valider une réponse ───────────────────────────────────────
+    async function submitAnswer() {
+      const answer   = document.getElementById('answer-input').value.trim();
+      const enigma   = enigmas[currentIdx];
+      const timeTaken = Math.round((Date.now() - startTime) / 1000);
+
+      try {
+        const result = await api('/api/scores/submit', {
+          method: 'POST',
+          body: JSON.stringify({ team_id: teamId, enigma_id: enigma.id, answer, time_taken: timeTaken })
+        });
+        showFeedback(result);
+        if (result.valid) {
+          totalScore += result.points;
+          updateScoreBadge();
+          setTimeout(() => { currentIdx++; renderEnigma(); }, 1800);
+        }
+      } catch(e) {
+        // Mode hors-ligne : vérification locale (réponse exposée en cache)
+        showFeedback({ valid: false, message: 'Hors-ligne — réponse mise en file d'attente' });
+        queueAnswer({ team_id: teamId, enigma_id: enigma.id, answer, time_taken: timeTaken });
+      }
+    }
+
+    function showFeedback({ valid, message, points }) {
+      const el = document.getElementById('feedback');
+      el.className = 'answer-feedback ' + (valid ? 'correct' : 'wrong');
+      el.textContent = valid ? '✅ Correct ! +' + points + ' points' : ('❌ ' + (message || 'Mauvaise réponse'));
+      el.style.display = 'block';
+      if (!valid) setTimeout(() => el.style.display = 'none', 2500);
+    }
+
+    function updateScoreBadge() {
+      document.getElementById('score-badge').textContent = totalScore + ' pts';
+    }
+
+    // ── Timer ─────────────────────────────────────────────────────
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        const s = Math.round((Date.now() - startTime) / 1000);
+        const m = Math.floor(s / 60).toString().padStart(2,'0');
+        const sec = (s % 60).toString().padStart(2,'0');
+        document.getElementById('timer').textContent = m + ':' + sec;
+      }, 1000);
+    }
+
+    // ── Indice ────────────────────────────────────────────────────
+    function toggleHint() {
+      const el = document.getElementById('enigma-hint');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // ── QR Scanner ────────────────────────────────────────────────
+    function toggleQR()  { if (window.startQR) startQR(); }
+    function closeQR()   { if (window.stopQR)  stopQR();  }
+
+    // ── Classement ────────────────────────────────────────────────
+    async function loadLeaderboard() {
+      try {
+        const board = await api('/api/scores/leaderboard/' + gameId);
+        const medals = ['🥇','🥈','🥉'];
+        document.getElementById('leaderboard').innerHTML = board.slice(0, 10).map((t, i) => `
+          <li>
+            <span class="rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${medals[i] || (i+1)}</span>
+            <span class="team-name">${t.team_name}${t.team_id===teamId?' (vous)':''}</span>
+            <span class="team-score">${t.total_points} pts</span>
+            <span class="team-progress">${t.enigmas_solved} ✓</span>
+          </li>
+        `).join('');
+      } catch(e) {}
+    }
+
+    init();
+  </script>
+</body>
+</html>
