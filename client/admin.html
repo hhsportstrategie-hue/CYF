@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYF — Administration</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <span class="logo">⚙️</span>
+    <h1>Administration CYF</h1>
+    <a href="index.html" class="btn btn-outline" style="color:white;border-color:white;margin-left:auto;">← Accueil</a>
+  </header>
+
+  <main>
+    <!-- Créer une partie -->
+    <div class="card">
+      <div class="card-title">🎮 Créer une nouvelle partie</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Nom du club</label>
+          <input type="text" id="new-club" placeholder="Ex: SM Caen">
+        </div>
+        <div class="form-group">
+          <label>Date de la partie</label>
+          <input type="date" id="new-date">
+        </div>
+        <div class="form-group">
+          <label>Nombre max d'équipes</label>
+          <input type="number" id="new-maxteams" value="20" min="1" max="200">
+        </div>
+        <div class="form-group">
+          <label>Mode de jeu</label>
+          <select id="new-mode">
+            <option value="sequential">Séquentiel (ordre imposé)</option>
+            <option value="free">Libre (ordre au choix)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="createGame()">✚ Créer la partie</button>
+    </div>
+
+    <!-- Liste des parties -->
+    <div class="card">
+      <div class="card-title">📋 Parties existantes</div>
+      <div id="games-admin-list"><p style="color:var(--muted)">Chargement…</p></div>
+    </div>
+
+    <!-- Gestion d'une partie sélectionnée -->
+    <div id="game-detail" style="display:none;">
+      <div class="card">
+        <div class="card-title">🔍 Gestion de la partie : <span id="detail-title"></span></div>
+
+        <!-- Onglets -->
+        <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="showTab('enigmas')">Énigmes</button>
+          <button class="btn btn-accent btn-sm"  onclick="showTab('teams')">Équipes</button>
+          <button class="btn btn-gold btn-sm"    onclick="showTab('scores')">Classement</button>
+        </div>
+
+        <!-- Tab Énigmes -->
+        <div id="tab-enigmas">
+          <h3 style="margin-bottom:1rem;color:var(--primary)">Ajouter une énigme</h3>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Titre</label>
+              <input type="text" id="e-title" placeholder="La salle des trophées">
+            </div>
+            <div class="form-group">
+              <label>Ordre</label>
+              <input type="number" id="e-order" value="1" min="1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description / Texte de l'énigme</label>
+            <textarea id="e-desc" placeholder="Le texte que verront les joueurs…"></textarea>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Indice (optionnel)</label>
+              <input type="text" id="e-hint" placeholder="Regardez au-dessus de la porte…">
+            </div>
+            <div class="form-group">
+              <label>Type de réponse</label>
+              <select id="e-type">
+                <option value="code">Code manuel</option>
+                <option value="qrcode">QR Code</option>
+                <option value="text">Texte libre</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Réponse correcte</label>
+              <input type="text" id="e-answer" placeholder="CAEN1972">
+            </div>
+            <div class="form-group">
+              <label>Points</label>
+              <input type="number" id="e-points" value="100" min="10">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addEnigma()">✚ Ajouter l'énigme</button>
+          <div id="enigmas-list" style="margin-top:1.5rem;"></div>
+        </div>
+
+        <!-- Tab Équipes -->
+        <div id="tab-teams" style="display:none;">
+          <div style="display:flex;gap:1rem;margin-bottom:1rem;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="flex:1;margin:0;">
+              <label>Nom de l'équipe</label>
+              <input type="text" id="t-name" placeholder="Les Ultras du Virage">
+            </div>
+            <div class="form-group" style="width:100px;margin:0;">
+              <label>Membres</label>
+              <input type="number" id="t-members" value="3" min="1">
+            </div>
+            <button class="btn btn-accent" onclick="addTeam()">✚ Ajouter</button>
+          </div>
+          <div id="teams-list"></div>
+        </div>
+
+        <!-- Tab Classement -->
+        <div id="tab-scores" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <strong>Classement temps réel</strong>
+            <button class="btn btn-outline btn-sm" onclick="loadScores()">🔄 Rafraîchir</button>
+          </div>
+          <ul class="leaderboard" id="admin-leaderboard"></ul>
+          <button class="btn btn-outline" onclick="exportCSV()" style="margin-top:1rem;">
+            📥 Exporter CSV
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    let currentGameId = null;
+
+    // ── Créer une partie ─────────────────────────────────────────
+    async function createGame() {
+      const club_name = document.getElementById('new-club').value.trim();
+      const game_date = document.getElementById('new-date').value;
+      const max_teams = +document.getElementById('new-maxteams').value;
+      const mode      = document.getElementById('new-mode').value;
+      if (!club_name || !game_date) return alert('Club et date requis');
+      try {
+        await api('/api/games', { method:'POST', body: JSON.stringify({ club_name, game_date, max_teams, mode }) });
+        toast('Partie créée !');
+        loadGames();
+      } catch(e) { alert('Erreur : ' + e.message); }
+    }
+
+    // ── Charger les parties ───────────────────────────────────────
+    async function loadGames() {
+      try {
+        const games = await api('/api/games');
+        const el = document.getElementById('games-admin-list');
+        if (!games.length) { el.innerHTML = '<p style="color:var(--muted)">Aucune partie.</p>'; return; }
+        el.innerHTML = `<table>
+          <thead><tr><th>Club</th><th>Date</th><th>Mode</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody>${games.map(g => `
+            <tr>
+              <td><strong>${g.club_name}</strong></td>
+              <td>${new Date(g.game_date).toLocaleDateString('fr-FR')}</td>
+              <td>${g.mode === 'sequential' ? 'Séquentiel' : 'Libre'}</td>
+              <td><span class="badge badge-${g.status}">${g.status}</span></td>
+              <td style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                <button class="btn btn-primary btn-sm" onclick="selectGame('${g.id}','${g.club_name}')">Gérer</button>
+                <button class="btn btn-accent btn-sm" onclick="setStatus('${g.id}','active')">▶ Activer</button>
+                <button class="btn btn-outline btn-sm" onclick="setStatus('${g.id}','finished')">■ Terminer</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')">✕</button>
+              </td>
+            </tr>
+          `).join('')}</tbody>
+        </table>`;
+      } catch(e) { document.getElementById('games-admin-list').innerHTML = '<p style="color:var(--danger)">Erreur de connexion.</p>'; }
+    }
+
+    async function setStatus(id, status) {
+      await api('/api/games/' + id, { method:'PATCH', body: JSON.stringify({ status }) });
+      loadGames();
+    }
+
+    async function deleteGame(id) {
+      if (!confirm('Supprimer cette partie et toutes ses données ?')) return;
+      await api('/api/games/' + id, { method:'DELETE' });
+      loadGames();
+    }
+
+    function selectGame(id, name) {
+      currentGameId = id;
+      document.getElementById('detail-title').textContent = name;
+      document.getElementById('game-detail').style.display = 'block';
+      document.getElementById('game-detail').scrollIntoView({ behavior:'smooth' });
+      showTab('enigmas');
+      loadEnigmas();
+    }
+
+    function showTab(tab) {
+      ['enigmas','teams','scores'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+      });
+      if (tab === 'teams')  loadTeams();
+      if (tab === 'scores') loadScores();
+    }
+
+    // ── Énigmes ───────────────────────────────────────────────────
+    async function addEnigma() {
+      const data = {
+        game_id: currentGameId,
+        order_num: +document.getElementById('e-order').value,
+        title:     document.getElementById('e-title').value.trim(),
+        description: document.getElementById('e-desc').value.trim(),
+        hint:      document.getElementById('e-hint').value.trim() || null,
+        answer_type: document.getElementById('e-type').value,
+        answer:    document.getElementById('e-answer').value.trim().toUpperCase(),
+        points:    +document.getElementById('e-points').value,
+      };
+      if (!data.title || !data.answer) return alert('Titre et réponse requis');
+      await api('/api/enigmas', { method:'POST', body: JSON.stringify(data) });
+      toast('Énigme ajoutée !');
+      loadEnigmas();
+    }
+
+    async function loadEnigmas() {
+      const enigmas = await api('/api/enigmas?game_id=' + currentGameId);
+      const el = document.getElementById('enigmas-list');
+      if (!enigmas.length) { el.innerHTML = '<p style="color:var(--muted)">Aucune énigme.</p>'; return; }
+      el.innerHTML = `<table>
+        <thead><tr><th>#</th><th>Titre</th><th>Type</th><th>Points</th><th></th></tr></thead>
+        <tbody>${enigmas.map(e => `
+          <tr>
+            <td>${e.order_num}</td>
+            <td>${e.title}</td>
+            <td>${e.answer_type}</td>
+            <td>${e.points}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteEnigma('${e.id}')">✕</button></td>
+          </tr>
+        `).join('')}</tbody>
+      </table>`;
+    }
+
+    async function deleteEnigma(id) {
+      await api('/api/enigmas/' + id, { method:'DELETE' });
+      loadEnigmas();
+    }
+
+    // ── Équipes ───────────────────────────────────────────────────
+    async function addTeam() {
+      const name    = document.getElementById('t-name').value.trim();
+      const members = +document.getElementById('t-members').value;
+      if (!name) return alert('Nom requis');
+      const team = await api('/api/teams', { method:'POST', body: JSON.stringify({ game_id: currentGameId, name, members }) });
+      toast('Équipe créée — Code : ' + team.code);
+      loadTeams();
+    }
+
+    async function loadTeams() {
+      const teams = await api('/api/teams?game_id=' + currentGameId);
+      const el = document.getElementById('teams-list');
+      if (!teams.length) { el.innerHTML = '<p style="color:var(--muted)">Aucune équipe.</p>'; return; }
+      el.innerHTML = `<table>
+        <thead><tr><th>Équipe</th><th>Code</th><th>Membres</th><th>Inscrite le</th><th></th></tr></thead>
+        <tbody>${teams.map(t => `
+          <tr>
+            <td><strong>${t.name}</strong></td>
+            <td><code style="background:#f0f0f0;padding:.2rem .5rem;border-radius:4px;font-weight:700;">${t.code}</code></td>
+            <td>${t.members}</td>
+            <td>${new Date(t.registered_at).toLocaleString('fr-FR')}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteTeam('${t.id}')">✕</button></td>
+          </tr>
+        `).join('')}</tbody>
+      </table>`;
+    }
+
+    async function deleteTeam(id) {
+      await api('/api/teams/' + id, { method:'DELETE' });
+      loadTeams();
+    }
+
+    // ── Classement ────────────────────────────────────────────────
+    async function loadScores() {
+      const board = await api('/api/scores/leaderboard/' + currentGameId);
+      const medals = ['🥇','🥈','🥉'];
+      document.getElementById('admin-leaderboard').innerHTML = board.map((t, i) => `
+        <li>
+          <span class="rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${medals[i]||i+1}</span>
+          <span class="team-name">${t.team_name}</span>
+          <span class="team-score">${t.total_points} pts</span>
+          <span class="team-progress">${t.enigmas_solved} énigme(s)</span>
+        </li>
+      `).join('');
+    }
+
+    function exportCSV() {
+      api('/api/scores/leaderboard/' + currentGameId).then(board => {
+        const csv = ['Rang,Équipe,Points,Énigmes résolues']
+          .concat(board.map((t,i) => `${i+1},"${t.team_name}",${t.total_points},${t.enigmas_solved}`))
+          .join('\n');
+        const a = document.createElement('a');
+        a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+        a.download = 'cyf_classement.csv';
+        a.click();
+      });
+    }
+
+    loadGames();
+  </script>
+</body>
+</html>
