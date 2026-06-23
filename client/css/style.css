@@ -1,0 +1,306 @@
+/* CYF — Challenge Your Fans — Styles */
+
+:root {
+  --primary:   #1B2A4A;   /* bleu nuit H3P */
+  --accent:    #2D6A4F;   /* vert territoire */
+  --accent2:   #52B788;   /* vert dynamique */
+  --gold:      #F4A261;   /* or supporters */
+  --danger:    #C0392B;
+  --bg:        #F8F9FA;
+  --card:      #FFFFFF;
+  --text:      #212529;
+  --muted:     #6C757D;
+  --border:    #DEE2E6;
+  --radius:    12px;
+  --shadow:    0 4px 16px rgba(0,0,0,.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+header {
+  background: var(--primary);
+  color: white;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+header h1 { font-size: 1.4rem; font-weight: 700; }
+header .logo { font-size: 1.8rem; }
+header .badge {
+  margin-left: auto;
+  background: var(--accent2);
+  padding: .3rem .8rem;
+  border-radius: 20px;
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+/* ── Layout ──────────────────────────────────────────────────── */
+main { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+
+/* ── Cards ───────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--accent2);
+  padding-bottom: .5rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .6rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  text-decoration: none;
+}
+.btn-primary  { background: var(--primary); color: white; }
+.btn-accent   { background: var(--accent);  color: white; }
+.btn-gold     { background: var(--gold);    color: var(--primary); }
+.btn-danger   { background: var(--danger);  color: white; }
+.btn-outline  { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+.btn:hover    { opacity: .88; transform: translateY(-1px); }
+.btn:active   { transform: translateY(0); }
+.btn-lg       { padding: .9rem 2rem; font-size: 1.1rem; }
+.btn-sm       { padding: .35rem .8rem; font-size: .85rem; }
+
+/* ── Forms ───────────────────────────────────────────────────── */
+.form-group { margin-bottom: 1.2rem; }
+label { display: block; font-weight: 600; margin-bottom: .4rem; color: var(--primary); }
+input, select, textarea {
+  width: 100%;
+  padding: .6rem .9rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color .2s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent2);
+}
+textarea { min-height: 80px; resize: vertical; }
+
+/* ── Enigma card (joueur) ────────────────────────────────────── */
+.enigma-card {
+  background: linear-gradient(135deg, var(--primary) 0%, #2c3e6b 100%);
+  color: white;
+  border-radius: var(--radius);
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.enigma-card::before {
+  content: '🔍';
+  position: absolute;
+  right: 1.5rem;
+  top: 1rem;
+  font-size: 3rem;
+  opacity: .2;
+}
+.enigma-number {
+  font-size: .85rem;
+  opacity: .7;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: .5rem;
+}
+.enigma-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; }
+.enigma-desc  { line-height: 1.6; opacity: .9; }
+.enigma-hint  {
+  margin-top: 1rem;
+  padding: .8rem;
+  background: rgba(255,255,255,.1);
+  border-radius: 8px;
+  font-style: italic;
+  font-size: .9rem;
+}
+
+/* ── Answer input ────────────────────────────────────────────── */
+.answer-section {
+  background: white;
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+.answer-input {
+  font-size: 1.3rem;
+  text-align: center;
+  letter-spacing: .15em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.answer-feedback {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  display: none;
+}
+.answer-feedback.correct { background: #d4edda; color: #155724; }
+.answer-feedback.wrong   { background: #f8d7da; color: #721c24; }
+
+/* ── Leaderboard ─────────────────────────────────────────────── */
+.leaderboard { list-style: none; }
+.leaderboard li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .8rem 1rem;
+  border-bottom: 1px solid var(--border);
+  transition: background .15s;
+}
+.leaderboard li:hover { background: #f8f9fa; }
+.rank {
+  font-size: 1.3rem;
+  font-weight: 800;
+  width: 2rem;
+  text-align: center;
+  color: var(--muted);
+}
+.rank.gold   { color: #F4A261; }
+.rank.silver { color: #ADB5BD; }
+.rank.bronze { color: #CD7F32; }
+.team-name { flex: 1; font-weight: 600; }
+.team-score {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+.team-progress { font-size: .85rem; color: var(--muted); }
+
+/* ── Progress bar ────────────────────────────────────────────── */
+.progress-bar {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: .5rem 0;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 4px;
+  transition: width .5s ease;
+}
+
+/* ── Status badges ───────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: .2rem .6rem;
+  border-radius: 20px;
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.badge-draft    { background: #e9ecef; color: #495057; }
+.badge-active   { background: #d4edda; color: #155724; }
+.badge-finished { background: #cce5ff; color: #004085; }
+
+/* ── QR Scanner overlay ──────────────────────────────────────── */
+#qr-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.85);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
+}
+#qr-overlay.active { display: flex; }
+#qr-video {
+  width: min(90vw, 400px);
+  border-radius: var(--radius);
+  border: 3px solid var(--accent2);
+}
+
+/* ── Offline banner ──────────────────────────────────────────── */
+#offline-banner {
+  display: none;
+  background: #fff3cd;
+  color: #856404;
+  text-align: center;
+  padding: .6rem;
+  font-weight: 600;
+  font-size: .9rem;
+}
+body.offline #offline-banner { display: block; }
+
+/* ── Hero section (accueil) ──────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--primary) 0%, #2c3e6b 60%, var(--accent) 100%);
+  color: white;
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.hero h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; }
+.hero p   { font-size: 1.1rem; opacity: .9; max-width: 500px; margin: 0 auto 2rem; }
+
+/* ── Grid ────────────────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 600px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .hero h2 { font-size: 1.6rem; }
+}
+
+/* ── Admin table ─────────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .7rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+th { background: var(--primary); color: white; font-weight: 600; }
+tr:hover td { background: #f8f9fa; }
+
+/* ── Notifications ───────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 1rem;
+  background: var(--primary);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 300;
+  font-weight: 600;
+  animation: slideIn .3s ease;
+}
+@keyframes slideIn {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
