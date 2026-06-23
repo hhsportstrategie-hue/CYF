@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1B2A4A">
+  <title>CYF — Challenge Your Fans</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div id="offline-banner">📵 Mode hors-ligne — vos réponses seront synchronisées au retour réseau</div>
+
+  <header>
+    <span class="logo">🏟️</span>
+    <h1>Challenge Your Fans</h1>
+    <span class="badge" id="status-badge">Accueil</span>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h2>L'escape game de votre club</h2>
+      <p>Résolvez des énigmes, défiez vos amis et vivez l'histoire de votre club comme jamais.</p>
+      <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+        <button class="btn btn-gold btn-lg" onclick="showJoin()">🎮 Rejoindre une partie</button>
+        <a href="admin.html" class="btn btn-outline btn-lg" style="color:white;border-color:white;">⚙️ Admin club</a>
+      </div>
+    </div>
+
+    <!-- Rejoindre par code -->
+    <div class="card" id="join-section" style="display:none;">
+      <div class="card-title">🔑 Rejoindre une partie</div>
+      <div class="form-group">
+        <label>Code équipe (6 caractères)</label>
+        <input type="text" id="team-code" class="answer-input" maxlength="6"
+               placeholder="EX: ABC123" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="joinGame()" style="width:100%">
+        Rejoindre →
+      </button>
+      <p id="join-error" style="color:var(--danger);margin-top:.8rem;display:none;"></p>
+    </div>
+
+    <!-- Parties en cours -->
+    <div class="card">
+      <div class="card-title">🎯 Parties disponibles</div>
+      <div id="games-list">
+        <p style="color:var(--muted)">Chargement…</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    function showJoin() {
+      const s = document.getElementById('join-section');
+      s.style.display = s.style.display === 'none' ? 'block' : 'none';
+      if (s.style.display === 'block') document.getElementById('team-code').focus();
+    }
+
+    async function joinGame() {
+      const code = document.getElementById('team-code').value.trim();
+      if (code.length < 6) return showError('Code trop court');
+      try {
+        const team = await api('/api/teams/join/' + code);
+        localStorage.setItem('cyf_team_id',   team.id);
+        localStorage.setItem('cyf_team_name',  team.name);
+        localStorage.setItem('cyf_game_id',    team.game_id);
+        window.location.href = 'game.html';
+      } catch(e) {
+        showError('Code invalide ou partie introuvable');
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('join-error');
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    // Charger les parties actives
+    async function loadGames() {
+      try {
+        const games = await api('/api/games');
+        const active = games.filter(g => g.status === 'active');
+        const el = document.getElementById('games-list');
+        if (!active.length) {
+          el.innerHTML = '<p style="color:var(--muted)">Aucune partie active pour le moment.</p>';
+          return;
+        }
+        el.innerHTML = active.map(g => `
+          <div style="display:flex;align-items:center;gap:1rem;padding:.8rem 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1">
+              <strong>${g.club_name}</strong>
+              <div style="font-size:.85rem;color:var(--muted)">${new Date(g.game_date).toLocaleDateString('fr-FR')}</div>
+            </div>
+            <span class="badge badge-active">En cours</span>
+            <button class="btn btn-accent btn-sm" onclick="showJoin()">Rejoindre</button>
+          </div>
+        `).join('');
+      } catch(e) {
+        document.getElementById('games-list').innerHTML =
+          '<p style="color:var(--muted)">Serveur non disponible — mode hors-ligne.</p>';
+      }
+    }
+    loadGames();
+  </script>
+</body>
+</html>
