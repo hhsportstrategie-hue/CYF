@@ -1,0 +1,27 @@
+{
+  "name": "cyf-challenge-your-fans",
+  "version": "1.0.0",
+  "description": "Escape game immersif pour stades et arènes sportives",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.4.3",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0",
+    "qrcode": "^1.5.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["escape-game", "sport", "pwa", "supporters"],
+  "author": "H3P Solutions",
+  "license": "MIT"
+}
