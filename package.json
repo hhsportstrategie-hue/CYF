@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
-    "test": "echo \"No tests yet\" && exit 0"
+    "test": "node --test server/tests/",
+    "test:watch": "node --test --watch server/tests/",
+    "seed": "node server/seed.js",
+    "seed:reset": "node server/seed.js --reset"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -21,7 +24,12 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["escape-game", "sport", "pwa", "supporters"],
+  "keywords": [
+    "escape-game",
+    "sport",
+    "pwa",
+    "supporters"
+  ],
   "author": "H3P Solutions",
   "license": "MIT"
 }
