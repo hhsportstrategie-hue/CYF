@@ -1,0 +1,49 @@
+# ── Node ──────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log
+yarn-debug.log*
+pnpm-debug.log*
+
+# ── Base de données SQLite ───────────────────────────────────
+server/db/*.sqlite
+server/db/*.sqlite-journal
+server/db/*.sqlite-wal
+server/db/*.sqlite-shm
+*.db
+*.db-journal
+
+# ── Variables d'environnement ────────────────────────────────
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# ── Fichiers de logs ─────────────────────────────────────────
+*.log
+logs/
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ── Fichiers d'environnement IDE ─────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Build & cache ────────────────────────────────────────────
+dist/
+build/
+.cache/
+.tmp/
+coverage/
+
+# ── Tests & fixtures ─────────────────────────────────────────
+test-results/
+playwright-report/
+junit.xml
