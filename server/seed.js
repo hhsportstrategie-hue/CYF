@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * Script de seed — CYF Challenge Your Fans
- * Remplit la base SQLite avec des données de démonstration
+ * Script de seed - CYF Challenge Your Fans
+ * Remplit la base SQLite avec des donnees de demonstration
  *
  * Usage :
- *   node server/seed.js            # crée cyf.sqlite + seed
+ *   node server/seed.js            # cree cyf.sqlite + seed
  *   node server/seed.js --reset    # supprime la base existante avant
  */
 
@@ -20,7 +20,7 @@ const SEED    = path.join(__dirname, 'db', 'seed.sql');
 const RESET = process.argv.includes('--reset');
 
 if (RESET && fs.existsSync(DB_PATH)) {
-  console.log('🗑️  Suppression de la base existante...');
+  console.log('Suppression de la base existante...');
   fs.unlinkSync(DB_PATH);
   if (fs.existsSync(DB_PATH + '-wal')) fs.unlinkSync(DB_PATH + '-wal');
   if (fs.existsSync(DB_PATH + '-shm')) fs.unlinkSync(DB_PATH + '-shm');
@@ -30,29 +30,28 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-console.log('📋  Création du schéma...');
+console.log('Creation du schema...');
 db.exec(fs.readFileSync(SCHEMA, 'utf8'));
 
-console.log('🌱  Insertion des données de démo...');
+console.log('Insertion des donnees de demo...');
 db.exec(fs.readFileSync(SEED, 'utf8'));
 
-// Vérification rapide
 const games   = db.prepare('SELECT COUNT(*) AS n FROM games').get().n;
 const enigmas = db.prepare('SELECT COUNT(*) AS n FROM enigmas').get().n;
 const teams   = db.prepare('SELECT COUNT(*) AS n FROM teams').get().n;
 const scores  = db.prepare('SELECT COUNT(*) AS n FROM scores').get().n;
 
-console.log('✅  Seed terminé :');
+console.log('Seed termine :');
 console.log(`    ${games} partie(s)`);
-console.log(`    ${enigmas} énigme(s)`);
-console.log(`    ${teams} équipe(s)`);
+console.log(`    ${enigmas} enigme(s)`);
+console.log(`    ${teams} equipe(s)`);
 console.log(`    ${scores} score(s)`);
 console.log('');
-console.log('🎮  Codes d\'équipe de démo :');
+console.log(`Codes d'equipe de demo :`);
 db.prepare('SELECT name, code FROM teams').all().forEach(t => {
-  console.log(`    ${t.code.padEnd(8)} → ${t.name}`);
+  console.log(`    ${t.code.padEnd(8)} -> ${t.name}`);
 });
 console.log('');
-console.log('🚀  Démarrez maintenant : npm start');
+console.log('Demarrez maintenant : npm start');
 
 db.close();
