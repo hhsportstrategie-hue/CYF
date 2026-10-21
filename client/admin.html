@@ -152,6 +152,7 @@
   <script src="js/app.js"></script>
   <script>
     let currentGameId = null;
+    let gamesById = {};
 
     // ── Authentification administrateur ───────────────────────────
     const TOKEN_KEY = 'cyf_admin_token';
@@ -233,18 +234,19 @@
     async function loadGames() {
       try {
         const games = await api('/api/games');
+        gamesById = Object.fromEntries(games.map(g => [g.id, g]));
         const el = document.getElementById('games-admin-list');
         if (!games.length) { el.innerHTML = '<p style="color:var(--muted)">Aucune partie.</p>'; return; }
         el.innerHTML = `<table>
           <thead><tr><th>Club</th><th>Date</th><th>Mode</th><th>Statut</th><th>Actions</th></tr></thead>
           <tbody>${games.map(g => `
             <tr>
-              <td><strong>${g.club_name}</strong></td>
+              <td><strong>${escapeHtml(g.club_name)}</strong></td>
               <td>${new Date(g.game_date).toLocaleDateString('fr-FR')}</td>
               <td>${g.mode === 'sequential' ? 'Séquentiel' : 'Libre'}</td>
-              <td><span class="badge badge-${g.status}">${g.status}</span></td>
+              <td><span class="badge badge-${escapeHtml(g.status)}">${escapeHtml(g.status)}</span></td>
               <td style="display:flex;gap:.4rem;flex-wrap:wrap;">
-                <button class="btn btn-primary btn-sm" onclick="selectGame('${g.id}','${g.club_name}')">Gérer</button>
+                <button class="btn btn-primary btn-sm" onclick="selectGame('${g.id}')">Gérer</button>
                 <button class="btn btn-accent btn-sm" onclick="setStatus('${g.id}','active')">▶ Activer</button>
                 <button class="btn btn-outline btn-sm" onclick="setStatus('${g.id}','finished')">■ Terminer</button>
                 <button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')">✕</button>
@@ -266,9 +268,9 @@
       loadGames();
     }
 
-    function selectGame(id, name) {
+    function selectGame(id) {
       currentGameId = id;
-      document.getElementById('detail-title').textContent = name;
+      document.getElementById('detail-title').textContent = gamesById[id] ? gamesById[id].club_name : '';
       document.getElementById('game-detail').style.display = 'block';
       document.getElementById('game-detail').scrollIntoView({ behavior:'smooth' });
       showTab('enigmas');
@@ -309,10 +311,10 @@
         <thead><tr><th>#</th><th>Titre</th><th>Type</th><th>Points</th><th></th></tr></thead>
         <tbody>${enigmas.map(e => `
           <tr>
-            <td>${e.order_num}</td>
-            <td>${e.title}</td>
-            <td>${e.answer_type}</td>
-            <td>${e.points}</td>
+            <td>${escapeHtml(e.order_num)}</td>
+            <td>${escapeHtml(e.title)}</td>
+            <td>${escapeHtml(e.answer_type)}</td>
+            <td>${escapeHtml(e.points)}</td>
             <td><button class="btn btn-danger btn-sm" onclick="deleteEnigma('${e.id}')">✕</button></td>
           </tr>
         `).join('')}</tbody>
@@ -342,9 +344,9 @@
         <thead><tr><th>Équipe</th><th>Code</th><th>Membres</th><th>Inscrite le</th><th></th></tr></thead>
         <tbody>${teams.map(t => `
           <tr>
-            <td><strong>${t.name}</strong></td>
-            <td><code style="background:#f0f0f0;padding:.2rem .5rem;border-radius:4px;font-weight:700;">${t.code}</code></td>
-            <td>${t.members}</td>
+            <td><strong>${escapeHtml(t.name)}</strong></td>
+            <td><code style="background:#f0f0f0;padding:.2rem .5rem;border-radius:4px;font-weight:700;">${escapeHtml(t.code)}</code></td>
+            <td>${escapeHtml(t.members)}</td>
             <td>${new Date(t.registered_at).toLocaleString('fr-FR')}</td>
             <td><button class="btn btn-danger btn-sm" onclick="deleteTeam('${t.id}')">✕</button></td>
           </tr>
@@ -364,7 +366,7 @@
       document.getElementById('admin-leaderboard').innerHTML = board.map((t, i) => `
         <li>
           <span class="rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${medals[i]||i+1}</span>
-          <span class="team-name">${t.team_name}</span>
+          <span class="team-name">${escapeHtml(t.team_name)}</span>
           <span class="team-score">${t.total_points} pts</span>
           <span class="team-progress">${t.enigmas_solved} énigme(s)</span>
         </li>
@@ -374,7 +376,7 @@
     function exportCSV() {
       api('/api/scores/leaderboard/' + currentGameId).then(board => {
         const csv = ['Rang,Équipe,Points,Énigmes résolues']
-          .concat(board.map((t,i) => `${i+1},"${t.team_name}",${t.total_points},${t.enigmas_solved}`))
+          .concat(board.map((t,i) => `${i+1},"${String(t.team_name).replace(/"/g, '""')}",${t.total_points},${t.enigmas_solved}`))
           .join('\n');
         const a = document.createElement('a');
         a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);

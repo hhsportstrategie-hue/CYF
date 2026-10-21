@@ -17,6 +17,17 @@ async function api(path, options = {}) {
   return res.json();
 }
 
+// ── Échappement HTML ─────────────────────────────────────────────
+// À utiliser pour TOUTE donnée insérée via innerHTML (noms, titres…)
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ── Toast notification ────────────────────────────────────────────
 function toast(msg, duration = 3000) {
   const el = document.createElement('div');

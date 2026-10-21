@@ -18,6 +18,22 @@ ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - Sans `ADMIN_PASSWORD`, mot de passe temporaire aléatoire affiché au démarrage
   (aucun mot de passe par défaut)
 - La liste des énigmes d'une partie n'expose plus les réponses
+- Côté joueurs : 5 essais libres par énigme, puis une tentative toutes les
+  30 s ; `POST /enigmas/:id/check` réservé à l'admin
+- Le classement public n'expose plus les codes d'accès des équipes
+- Échappement de tous les noms affichés (clubs, équipes, énigmes) :
+  plus d'injection de code, et les apostrophes (« Stade d'Ornano ») ne
+  cassent plus le bouton « Gérer »
+
+### 🐛 Corrections
+- **Page de jeu inutilisable** : une apostrophe (« file d'attente ») cassait
+  tout le script de `game.html` ; aucun joueur ne pouvait répondre
+- **Scores faussés** : une première mauvaise réponse marquait l'énigme comme
+  résolue avec 0 point, et la bonne réponse donnée ensuite n'était jamais
+  comptée
+- Une réponse refusée par le serveur n'est plus confondue avec une coupure
+  réseau (elle n'est plus mise en file hors-ligne)
+- Export CSV : guillemets des noms d'équipe correctement échappés
 
 ### 🔧 Technique
 - Lecture du fichier `.env` sans dépendance ; `DB_PATH`, `SESSION_SECRET`,
