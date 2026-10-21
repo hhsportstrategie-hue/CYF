@@ -13,7 +13,7 @@ const Database = require('better-sqlite3');
 const path     = require('path');
 const fs       = require('fs');
 
-const DB_PATH = path.join(__dirname, 'db', 'cyf.sqlite');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'db', 'cyf.sqlite');
 const SCHEMA  = path.join(__dirname, 'db', 'schema.sql');
 const SEED    = path.join(__dirname, 'db', 'seed.sql');
 

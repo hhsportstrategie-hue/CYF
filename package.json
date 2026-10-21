@@ -6,14 +6,14 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
-    "test": "node --test server/tests/",
-    "test:watch": "node --test --watch server/tests/",
+    "test": "node --test",
+    "test:watch": "node --test --watch",
     "seed": "node server/seed.js",
     "seed:reset": "node server/seed.js --reset"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "better-sqlite3": "^9.4.3",
+    "better-sqlite3": "^11.10.0",
     "cors": "^2.8.5",
     "uuid": "^9.0.0",
     "qrcode": "^1.5.3"

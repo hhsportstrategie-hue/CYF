@@ -11,7 +11,8 @@ module.exports = (models) => {
   router.get('/', (req, res) => {
     const { game_id } = req.query;
     if (!game_id) return res.status(400).json({ error: 'game_id required' });
-    res.json(Enigma.findByGame(game_id));
+    // Ne jamais exposer les réponses côté joueur
+    res.json(Enigma.findByGame(game_id).map(({ answer, ...safe }) => safe));
   });
 
   // GET /api/enigmas/:id
