@@ -4,7 +4,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const router  = express.Router();
 
-module.exports = (models) => {
+module.exports = (models, { requireAdmin }) => {
   const { Enigma } = models;
 
   // GET /api/enigmas?game_id=xxx
@@ -25,7 +25,7 @@ module.exports = (models) => {
   });
 
   // POST /api/enigmas — créer une énigme
-  router.post('/', (req, res) => {
+  router.post('/', requireAdmin, (req, res) => {
     const { game_id, order_num, title, description, hint, media_url,
             answer_type, answer, points, time_bonus } = req.body;
     if (!game_id || !title || !answer) {
@@ -51,7 +51,7 @@ module.exports = (models) => {
   });
 
   // PATCH /api/enigmas/:id
-  router.patch('/:id', (req, res) => {
+  router.patch('/:id', requireAdmin, (req, res) => {
     const enigma = Enigma.findById(req.params.id);
     if (!enigma) return res.status(404).json({ error: 'Enigma not found' });
     try {
@@ -62,7 +62,7 @@ module.exports = (models) => {
   });
 
   // DELETE /api/enigmas/:id
-  router.delete('/:id', (req, res) => {
+  router.delete('/:id', requireAdmin, (req, res) => {
     const enigma = Enigma.findById(req.params.id);
     if (!enigma) return res.status(404).json({ error: 'Enigma not found' });
     Enigma.delete(req.params.id);

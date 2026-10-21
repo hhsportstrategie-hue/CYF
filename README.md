@@ -50,7 +50,11 @@ npm start
 Le serveur démarre sur **http://localhost:3000**.
 
 - 🎮 **Joueur** : http://localhost:3000
-- ⚙️ **Admin** : http://localhost:3000/admin.html
+- ⚙️ **Admin** : http://localhost:3000/admin.html (protégé par mot de passe)
+
+> **Mot de passe admin** : définissez `ADMIN_PASSWORD` dans `.env`
+> (copie de `.env.example`). Sans lui, un mot de passe temporaire est
+> généré à chaque démarrage et affiché dans la console.
 
 ### Codes d'équipe de démo (fournis par le seed)
 
@@ -107,7 +111,7 @@ CYF/
 │   │   ├── schema.sql      # Schéma SQLite
 │   │   └── seed.sql        # Données de démo
 │   └── tests/
-│       └── api.test.js     # 16 tests d'API
+│       └── api.test.js     # 23 tests d'API
 ├── client/                  # Interface joueur + admin (PWA)
 │   ├── index.html          # Accueil + rejoindre
 │   ├── game.html           # Partie joueur
@@ -155,7 +159,12 @@ Base URL : `http://localhost:3000/api`
 ### Sécurité
 
 - Les **réponses correctes ne sont jamais exposées** côté client
-  (filtre sur la route `GET /api/enigmas/:id`)
+  (filtre sur `GET /api/enigmas` et `GET /api/enigmas/:id`)
+- **Dashboard club protégé** : création, modification, suppression,
+  statistiques et liste des équipes (avec leurs codes) exigent une
+  connexion admin (`ADMIN_PASSWORD`, session signée de 12 h,
+  blocage 15 min après 5 mauvais mots de passe)
+- Le parcours joueur (rejoindre par code, jouer, classement) reste public
 - Validation serveur insensible à la casse et aux espaces
 - CORS configurable via `.env` (CORS_ORIGINS en production)
 
@@ -167,11 +176,16 @@ Base URL : `http://localhost:3000/api`
 npm test
 ```
 
-16 tests d'API couvrent :
+23 tests d'API couvrent :
 - Health check
-- CRUD Games (5 tests)
+- CRUD Games (7 tests)
 - Enigmas + sécurité (5 tests)
-- Teams + Scores + Leaderboard (5 tests)
+- Teams + Scores + Leaderboard (4 tests)
+- Authentification admin (6 tests : routes protégées, parcours joueur
+  public, jeton falsifié, blocage anti force brute)
+
+Les tests utilisent leur propre base (`server/db/test.sqlite`), supprimée
+à la fin : la base de démo n'est jamais modifiée.
 
 Framework : `node:test` natif, **aucune dépendance externe**.
 
@@ -217,6 +231,8 @@ Copier `.env.example` en `.env` et adapter :
 ```env
 PORT=3000
 NODE_ENV=production
+ADMIN_PASSWORD=un-mot-de-passe-solide
+SESSION_SECRET=une-longue-chaine-aleatoire
 CORS_ORIGINS=https://cyf.votreclub.fr
 ```
 
@@ -240,7 +256,7 @@ bienvenues mais doivent passer par une discussion préalable avec l'équipe.
 
 Voir [`CHANGELOG.md`](CHANGELOG.md) pour le détail.
 
-- **v1.1** : Auth admin, WebSocket temps réel, statistiques avancées
+- **v1.1** : ~~Auth admin~~ ✅, WebSocket temps réel, statistiques avancées
 - **v1.2** : i18n, CMS énigmes, multi-clubs white-label
 - **v2.0** : PostgreSQL multi-tenants, app mobile native
 

@@ -4,11 +4,11 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const router  = express.Router();
 
-module.exports = (models) => {
+module.exports = (models, { requireAdmin }) => {
   const { Team } = models;
 
   // GET /api/teams?game_id=xxx
-  router.get('/', (req, res) => {
+  router.get('/', requireAdmin, (req, res) => {
     const { game_id } = req.query;
     if (!game_id) return res.status(400).json({ error: 'game_id required' });
     res.json(Team.findByGame(game_id));
@@ -22,14 +22,14 @@ module.exports = (models) => {
   });
 
   // GET /api/teams/:id
-  router.get('/:id', (req, res) => {
+  router.get('/:id', requireAdmin, (req, res) => {
     const team = Team.findById(req.params.id);
     if (!team) return res.status(404).json({ error: 'Team not found' });
     res.json(team);
   });
 
   // POST /api/teams — créer une équipe
-  router.post('/', (req, res) => {
+  router.post('/', requireAdmin, (req, res) => {
     const { game_id, name, members } = req.body;
     if (!game_id || !name) {
       return res.status(400).json({ error: 'game_id and name are required' });
@@ -52,7 +52,7 @@ module.exports = (models) => {
   });
 
   // DELETE /api/teams/:id
-  router.delete('/:id', (req, res) => {
+  router.delete('/:id', requireAdmin, (req, res) => {
     const team = Team.findById(req.params.id);
     if (!team) return res.status(404).json({ error: 'Team not found' });
     Team.delete(req.params.id);

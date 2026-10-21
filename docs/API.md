@@ -2,6 +2,31 @@
 
 Base URL : `http://localhost:3000/api`
 
+## 🔒 Authentification admin
+
+Les routes marquées **🔒 Admin** exigent l'en-tête
+`Authorization: Bearer <jeton>`. Sans jeton valide : **401**.
+
+### POST /auth/login
+**Body** `{ "password": "..." }` (valeur de `ADMIN_PASSWORD`)
+**Response 200** `{ "token": "...", "expires_at": "2026-10-22T03:00:00.000Z" }` — valable 12 h
+**401** mot de passe incorrect · **429** après 5 échecs (blocage 15 min par adresse IP)
+
+### GET /auth/check 🔒 Admin
+Vérifie qu'un jeton est encore valide. **Response 200** `{ "authenticated": true }`
+
+### Routes protégées 🔒 Admin
+`POST/PATCH/DELETE /games`, `GET /games/:id/stats`,
+`POST/PATCH/DELETE /enigmas`,
+`GET /teams?game_id=`, `GET /teams/:id`, `POST /teams`, `DELETE /teams/:id`.
+
+Restent publiques (parcours joueur) : `GET /games`, `GET /games/:id`,
+`GET /enigmas`, `GET /enigmas/:id`, `POST /enigmas/:id/check`,
+`GET /teams/join/:code`, `POST /scores/submit`, `GET /scores/leaderboard/:game_id`,
+`GET /scores/progress/:team_id`.
+
+---
+
 ## 🎮 Games
 
 ### GET /games

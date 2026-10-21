@@ -4,7 +4,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const router  = express.Router();
 
-module.exports = (models) => {
+module.exports = (models, { requireAdmin }) => {
   const { Game } = models;
 
   // GET /api/games — liste toutes les parties
@@ -24,14 +24,14 @@ module.exports = (models) => {
   });
 
   // GET /api/games/:id/stats — stats complètes
-  router.get('/:id/stats', (req, res) => {
+  router.get('/:id/stats', requireAdmin, (req, res) => {
     const stats = Game.stats(req.params.id);
     if (!stats) return res.status(404).json({ error: 'Game not found' });
     res.json(stats);
   });
 
   // POST /api/games — créer une partie
-  router.post('/', (req, res) => {
+  router.post('/', requireAdmin, (req, res) => {
     const { club_name, game_date, max_teams, mode } = req.body;
     if (!club_name || !game_date) {
       return res.status(400).json({ error: 'club_name and game_date are required' });
@@ -45,7 +45,7 @@ module.exports = (models) => {
   });
 
   // PATCH /api/games/:id — modifier une partie
-  router.patch('/:id', (req, res) => {
+  router.patch('/:id', requireAdmin, (req, res) => {
     const game = Game.findById(req.params.id);
     if (!game) return res.status(404).json({ error: 'Game not found' });
     try {
@@ -56,7 +56,7 @@ module.exports = (models) => {
   });
 
   // DELETE /api/games/:id — supprimer une partie
-  router.delete('/:id', (req, res) => {
+  router.delete('/:id', requireAdmin, (req, res) => {
     const game = Game.findById(req.params.id);
     if (!game) return res.status(404).json({ error: 'Game not found' });
     Game.delete(req.params.id);
