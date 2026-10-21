@@ -284,7 +284,7 @@ describe('API — Authentification admin', () => {
     // Rien n'a été modifié ni supprimé
     assert.equal((await req('GET', `/api/games/${gameId}`)).status, 200);
     assert.equal((await req('GET', `/api/teams/${teamId}`)).status, 200);
-    const check = await req('POST', `/api/enigmas/${enigmaId}/check`, { answer: 'OK' }, { auth: false });
+    const check = await req('POST', `/api/enigmas/${enigmaId}/check`, { answer: 'OK' });
     assert.equal(check.data.valid, true);
   });
 
@@ -314,5 +314,86 @@ describe('API — Authentification admin', () => {
     }
     const blocked = await req('POST', '/api/auth/login', { password: ADMIN_PASSWORD }, { auth: false });
     assert.equal(blocked.status, 429, 'même le bon mot de passe est bloqué pendant le délai');
+  });
+});
+
+describe('API — Sécurité et justesse des réponses joueurs', () => {
+  let gameId, otherGameId, teamId, enigmaId, enigma2Id, otherEnigmaId;
+
+  before(async () => {
+    gameId      = (await req('POST', '/api/games', { club_name: "Stade d'Ornano", game_date: '2026-12-05' })).data.id;
+    otherGameId = (await req('POST', '/api/games', { club_name: 'Autre club', game_date: '2026-12-05' })).data.id;
+    enigmaId  = (await req('POST', '/api/enigmas', { game_id: gameId, order_num: 1, title: 'E1', description: 'D', answer: '1913', points: 100, time_bonus: 50 })).data.id;
+    enigma2Id = (await req('POST', '/api/enigmas', { game_id: gameId, order_num: 2, title: 'E2', description: 'D', answer: 'MALHERBE' })).data.id;
+    otherEnigmaId = (await req('POST', '/api/enigmas', { game_id: otherGameId, title: 'X', description: 'D', answer: 'X' })).data.id;
+    teamId = (await req('POST', '/api/teams', { game_id: gameId, name: '<img src=x onerror=alert(1)>' })).data.id;
+  });
+
+  const submit = (enigma_id, answer, time_taken = 30) =>
+    req('POST', '/api/scores/submit', { team_id: teamId, enigma_id, answer, time_taken }, { auth: false });
+
+  test('Une mauvaise réponse ne marque PAS l\'énigme comme résolue', async () => {
+    const r = await submit(enigmaId, '1900');
+    assert.equal(r.status, 200);
+    assert.equal(r.data.valid, false);
+    assert.equal(r.data.attempts, 1);
+    const board = (await req('GET', `/api/scores/leaderboard/${gameId}`, null, { auth: false })).data;
+    assert.equal(board[0].enigmas_solved, 0);
+    assert.equal(board[0].total_points, 0);
+  });
+
+  test('Bonne réponse après une erreur → points accordés (bonus temps compris)', async () => {
+    const r = await submit(enigmaId, ' 1913 ');
+    assert.equal(r.data.valid, true);
+    assert.equal(r.data.points, 150);
+    assert.equal(r.data.score.attempts, 2);
+    assert.ok(r.data.score.solved_at);
+    const board = (await req('GET', `/api/scores/leaderboard/${gameId}`, null, { auth: false })).data;
+    assert.equal(board[0].enigmas_solved, 1);
+    assert.equal(board[0].total_points, 150);
+    const again = await submit(enigmaId, '1913');
+    assert.equal(again.data.already_solved, true);
+  });
+
+  test('Le classement public n\'expose pas les codes d\'équipe', async () => {
+    const board = (await req('GET', `/api/scores/leaderboard/${gameId}`, null, { auth: false })).data;
+    assert.equal(board[0].team_code, undefined);
+    assert.equal(JSON.stringify(board).includes((await req('GET', `/api/teams/${teamId}`)).data.code), false);
+  });
+
+  test('Une énigme d\'une autre partie est refusée → 400', async () => {
+    const r = await submit(otherEnigmaId, 'X');
+    assert.equal(r.status, 400);
+  });
+
+  test('Équipe inconnue → 404', async () => {
+    const r = await req('POST', '/api/scores/submit', { team_id: 'nope', enigma_id: enigmaId, answer: 'x' }, { auth: false });
+    assert.equal(r.status, 404);
+  });
+
+  test('Après 5 mauvais essais, pause imposée → 429 (même avec la bonne réponse)', async () => {
+    for (let i = 1; i <= 5; i++) {
+      const r = await submit(enigma2Id, `faux${i}`);
+      assert.equal(r.status, 200);
+      assert.equal(r.data.valid, false);
+    }
+    const blocked = await submit(enigma2Id, 'MALHERBE');
+    assert.equal(blocked.status, 429);
+    assert.ok(blocked.data.retry_after > 0 && blocked.data.retry_after <= 30);
+    const board = (await req('GET', `/api/scores/leaderboard/${gameId}`, null, { auth: false })).data;
+    assert.equal(board[0].enigmas_solved, 1, 'l\'énigme bloquée n\'a pas été validée');
+  });
+
+  test('POST /api/enigmas/:id/check réservé à l\'admin', async () => {
+    const r = await req('POST', `/api/enigmas/${enigma2Id}/check`, { answer: 'MALHERBE' }, { auth: false });
+    assert.equal(r.status, 401);
+    const admin = await req('POST', `/api/enigmas/${enigma2Id}/check`, { answer: 'MALHERBE' });
+    assert.equal(admin.data.valid, true);
+  });
+
+  test('Réponse non textuelle → pas d\'erreur serveur', async () => {
+    const r = await req('POST', `/api/enigmas/${enigmaId}/check`, { answer: 1913 });
+    assert.equal(r.status, 200);
+    assert.equal(r.data.valid, true);
   });
 });

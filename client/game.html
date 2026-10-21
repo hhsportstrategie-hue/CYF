@@ -173,8 +173,17 @@
           setTimeout(() => { currentIdx++; renderEnigma(); }, 1800);
         }
       } catch(e) {
-        // Mode hors-ligne : vérification locale (réponse exposée en cache)
-        showFeedback({ valid: false, message: 'Hors-ligne — réponse mise en file d'attente' });
+        if (e.status === 429) {
+          // Trop d'essais rapprochés : le serveur impose une pause
+          showFeedback({ valid: false, message: e.message });
+          return;
+        }
+        if (e.status && e.status !== 503) {
+          showFeedback({ valid: false, message: 'Erreur : ' + e.message });
+          return;
+        }
+        // Mode hors-ligne : la réponse est mise en file et envoyée au retour du réseau
+        showFeedback({ valid: false, message: "Hors-ligne — réponse mise en file d'attente" });
         queueAnswer({ team_id: teamId, enigma_id: enigma.id, answer, time_taken: timeTaken });
       }
     }
@@ -219,7 +228,7 @@
         document.getElementById('leaderboard').innerHTML = board.slice(0, 10).map((t, i) => `
           <li>
             <span class="rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${medals[i] || (i+1)}</span>
-            <span class="team-name">${t.team_name}${t.team_id===teamId?' (vous)':''}</span>
+            <span class="team-name">${escapeHtml(t.team_name)}${t.team_id===teamId?' (vous)':''}</span>
             <span class="team-score">${t.total_points} pts</span>
             <span class="team-progress">${t.enigmas_solved} ✓</span>
           </li>
