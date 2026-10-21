@@ -1,5 +1,8 @@
 'use strict';
 
+const { loadEnvFile } = require('./config');
+loadEnvFile();
+
 const express    = require('express');
 const cors       = require('cors');
 const path       = require('path');
@@ -17,6 +20,7 @@ const gamesRouter   = require('./routes/games');
 const enigmasRouter = require('./routes/enigmas');
 const teamsRouter   = require('./routes/teams');
 const scoresRouter  = require('./routes/scores');
+const { createAuth } = require('./auth');
 
 // ── Base de données ───────────────────────────────────────────────
 // Base séparée en test pour ne jamais toucher aux données de démo
@@ -42,6 +46,8 @@ const models = {
 
 // ── Application Express ───────────────────────────────────────────
 const app = express();
+// Derrière un proxy (nginx, hébergeur) : TRUST_PROXY=1 pour lire la vraie IP des visiteurs
+if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
 app.use(cors());
 app.use(express.json());
 
@@ -49,9 +55,14 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'client')));
 
 // ── API Routes ────────────────────────────────────────────────────
-app.use('/api/games',   gamesRouter(models));
-app.use('/api/enigmas', enigmasRouter(models));
-app.use('/api/teams',   teamsRouter(models));
+// ── Authentification administrateur ───────────────────────────────
+const auth = createAuth();
+const { requireAdmin } = auth;
+app.use('/api/auth', auth.router);
+
+app.use('/api/games',   gamesRouter(models, { requireAdmin }));
+app.use('/api/enigmas', enigmasRouter(models, { requireAdmin }));
+app.use('/api/teams',   teamsRouter(models, { requireAdmin }));
 app.use('/api/scores',  scoresRouter(models));
 
 // ── Health check ──────────────────────────────────────────────────
@@ -75,6 +86,11 @@ if (require.main === module) app.listen(PORT, () => {
   console.log(`📡  Serveur démarré sur http://localhost:${PORT}`);
   console.log(`🎮  Admin : http://localhost:${PORT}/admin.html`);
   console.log(`👥  Jeu   : http://localhost:${PORT}/game.html`);
+  if (auth.generatedPassword) {
+    console.log('');
+    console.log('⚠️   Aucun ADMIN_PASSWORD défini dans .env.');
+    console.log(`🔑  Mot de passe admin temporaire (change à chaque démarrage) : ${auth.generatedPassword}`);
+  }
 });
 
 app.locals.db = db;

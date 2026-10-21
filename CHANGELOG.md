@@ -7,6 +7,26 @@ ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [Non publié]
+
+### 🔒 Sécurité
+- Authentification du dashboard club : mot de passe `ADMIN_PASSWORD`,
+  session signée de 12 h, écran de connexion et bouton de déconnexion
+- Création / modification / suppression, statistiques et liste des équipes
+  (avec leurs codes d'accès) réservées à l'admin ; parcours joueur inchangé
+- Blocage 15 min après 5 mauvais mots de passe (par adresse IP)
+- Sans `ADMIN_PASSWORD`, mot de passe temporaire aléatoire affiché au démarrage
+  (aucun mot de passe par défaut)
+- La liste des énigmes d'une partie n'expose plus les réponses
+
+### 🔧 Technique
+- Lecture du fichier `.env` sans dépendance ; `DB_PATH`, `SESSION_SECRET`,
+  `TRUST_PROXY` pris en compte
+- `better-sqlite3` ^11 (Node 22), tests isolés sur une base dédiée
+- Cache du Service Worker passé en `cyf-v2` pour servir le nouveau dashboard
+
+---
+
 ## [1.0.0] — 2026-07-03
 
 ### 🎉 Version initiale — Production-ready MVP

@@ -20,6 +20,8 @@ const fs        = require('node:fs');
 process.env.NODE_ENV = 'test';
 const TEST_DB = path.join(__dirname, '..', 'db', 'test.sqlite');
 process.env.DB_PATH = TEST_DB;
+const ADMIN_PASSWORD = 'mot-de-passe-test';
+process.env.ADMIN_PASSWORD = ADMIN_PASSWORD;
 function removeTestDb() {
   for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) {
     if (fs.existsSync(f)) fs.unlinkSync(f);
@@ -40,6 +42,8 @@ before(async () => {
       resolve();
     });
   });
+  const r = await req('POST', '/api/auth/login', { password: ADMIN_PASSWORD }, { auth: false });
+  adminToken = r.data.token;
 });
 
 after(async () => {
@@ -48,9 +52,14 @@ after(async () => {
   removeTestDb();
 });
 
-async function req(method, urlPath, body = null) {
+let adminToken = null;
+
+// Par défaut les requêtes portent le jeton admin ; { auth: false } simule un joueur
+async function req(method, urlPath, body = null, { auth = true, token } = {}) {
   const url = new URL(urlPath, baseUrl);
   const headers = { 'Content-Type': 'application/json' };
+  const bearer = token ?? (auth ? adminToken : null);
+  if (bearer) headers.Authorization = `Bearer ${bearer}`;
   const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(url, opts);
@@ -223,5 +232,87 @@ describe('API — Teams & Scores', () => {
     assert.ok(Array.isArray(r.data));
     assert.equal(r.data[0].team_id, teamId);
     assert.equal(r.data[0].enigmas_solved, 1);
+  });
+});
+
+describe('API — Authentification admin', () => {
+  let gameId, teamId, enigmaId;
+
+  before(async () => {
+    gameId   = (await req('POST', '/api/games', { club_name: 'FC Auth', game_date: '2026-12-03' })).data.id;
+    teamId   = (await req('POST', '/api/teams', { game_id: gameId, name: 'Equipe Auth' })).data.id;
+    enigmaId = (await req('POST', '/api/enigmas', {
+      game_id: gameId, title: 'E', description: 'D', answer: 'OK',
+    })).data.id;
+  });
+
+  test('GET /api/auth/check sans jeton → 401', async () => {
+    const r = await req('GET', '/api/auth/check', null, { auth: false });
+    assert.equal(r.status, 401);
+  });
+
+  test('GET /api/auth/check avec jeton → 200', async () => {
+    const r = await req('GET', '/api/auth/check');
+    assert.equal(r.status, 200);
+    assert.equal(r.data.authenticated, true);
+  });
+
+  test('Jeton falsifié → 401', async () => {
+    const [payload] = adminToken.split('.');
+    const r = await req('GET', '/api/auth/check', null, { token: `${payload}.signature-bidon` });
+    assert.equal(r.status, 401);
+  });
+
+  test('Routes du dashboard refusées sans jeton → 401', async () => {
+    const calls = [
+      ['POST',   '/api/games', { club_name: 'X', game_date: '2026-12-04' }],
+      ['PATCH',  `/api/games/${gameId}`, { status: 'active' }],
+      ['DELETE', `/api/games/${gameId}`],
+      ['GET',    `/api/games/${gameId}/stats`],
+      ['POST',   '/api/enigmas', { game_id: gameId, title: 'X', description: 'X', answer: 'X' }],
+      ['PATCH',  `/api/enigmas/${enigmaId}`, { answer: 'PIRATE' }],
+      ['DELETE', `/api/enigmas/${enigmaId}`],
+      ['GET',    `/api/teams?game_id=${gameId}`],
+      ['GET',    `/api/teams/${teamId}`],
+      ['POST',   '/api/teams', { game_id: gameId, name: 'X' }],
+      ['DELETE', `/api/teams/${teamId}`],
+    ];
+    for (const [method, path, body] of calls) {
+      const r = await req(method, path, body, { auth: false });
+      assert.equal(r.status, 401, `${method} ${path} devrait exiger une connexion admin`);
+    }
+    // Rien n'a été modifié ni supprimé
+    assert.equal((await req('GET', `/api/games/${gameId}`)).status, 200);
+    assert.equal((await req('GET', `/api/teams/${teamId}`)).status, 200);
+    const check = await req('POST', `/api/enigmas/${enigmaId}/check`, { answer: 'OK' }, { auth: false });
+    assert.equal(check.data.valid, true);
+  });
+
+  test('Parcours joueur toujours accessible sans jeton', async () => {
+    const code = (await req('GET', `/api/teams/${teamId}`)).data.code;
+    const calls = [
+      ['GET', '/api/games'],
+      ['GET', `/api/games/${gameId}`],
+      ['GET', `/api/teams/join/${code}`],
+      ['GET', `/api/enigmas?game_id=${gameId}`],
+      ['GET', `/api/scores/leaderboard/${gameId}`],
+      ['GET', `/api/scores/progress/${teamId}`],
+    ];
+    for (const [method, path] of calls) {
+      const r = await req(method, path, null, { auth: false });
+      assert.equal(r.status, 200, `${method} ${path} doit rester public`);
+    }
+    const submit = await req('POST', '/api/scores/submit',
+      { team_id: teamId, enigma_id: enigmaId, answer: 'ok', time_taken: 10 }, { auth: false });
+    assert.equal(submit.status, 200);
+  });
+
+  test('Mauvais mot de passe → 401, puis blocage après 5 échecs → 429', async () => {
+    for (let i = 0; i < 5; i++) {
+      const r = await req('POST', '/api/auth/login', { password: 'faux' }, { auth: false });
+      assert.equal(r.status, 401);
+    }
+    const blocked = await req('POST', '/api/auth/login', { password: ADMIN_PASSWORD }, { auth: false });
+    assert.equal(blocked.status, 429, 'même le bon mot de passe est bloqué pendant le délai');
   });
 });

@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'cyf-v1';
+const CACHE_NAME = 'cyf-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

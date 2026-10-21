@@ -140,7 +140,16 @@ Dans un autre onglet, va sur :
 http://localhost:3000/admin.html
 ```
 
-Tu devrais voir le dashboard avec les stats de la partie démo.
+Un écran **🔒 Accès réservé au club** te demande un mot de passe.
+
+- **Pour une démo rapide** : regarde la fenêtre CMD où tourne le serveur. Tu y trouves la ligne
+  `🔑  Mot de passe admin temporaire (change à chaque démarrage) : ...` → copie ce mot de passe.
+- **Pour un mot de passe fixe** : dans le dossier `C:\CYF\CYF`, copie le fichier `.env.example`
+  en `.env`, puis remplis la ligne `ADMIN_PASSWORD=` (ex. `ADMIN_PASSWORD=smcaen2026`).
+  Arrête le serveur (`Ctrl + C`) et relance `npm start`.
+
+Une fois connecté, tu vois le dashboard avec les parties, énigmes, équipes et le classement.
+Le bouton **Se déconnecter** en haut à droite referme l'accès.
 
 ---
 
@@ -153,7 +162,7 @@ cd C:\CYF\CYF
 npm test
 ```
 
-**Tu dois voir** : `# tests 16` `# pass 16` `# fail 0` ✅
+**Tu dois voir** : `# tests 23` `# pass 23` `# fail 0` ✅
 
 ---
 

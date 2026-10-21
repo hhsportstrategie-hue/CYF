@@ -11,9 +11,23 @@
     <span class="logo">⚙️</span>
     <h1>Administration CYF</h1>
     <a href="index.html" class="btn btn-outline" style="color:white;border-color:white;margin-left:auto;">← Accueil</a>
+    <button id="logout-btn" class="btn btn-outline" style="color:white;border-color:white;display:none;" onclick="logout()">Se déconnecter</button>
   </header>
 
-  <main>
+  <!-- Connexion administrateur -->
+  <div id="login-screen" style="display:none;max-width:420px;margin:3rem auto;padding:0 1rem;">
+    <form class="card" onsubmit="event.preventDefault(); login();">
+      <div class="card-title">🔒 Accès réservé au club</div>
+      <div class="form-group">
+        <label for="admin-password">Mot de passe administrateur</label>
+        <input type="password" id="admin-password" autocomplete="current-password" required>
+      </div>
+      <p id="login-error" style="color:var(--danger);min-height:1.5em;margin-bottom:.75rem;"></p>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Se connecter</button>
+    </form>
+  </div>
+
+  <main id="admin-main" style="display:none;">
     <!-- Créer une partie -->
     <div class="card">
       <div class="card-title">🎮 Créer une nouvelle partie</div>
@@ -138,6 +152,68 @@
   <script src="js/app.js"></script>
   <script>
     let currentGameId = null;
+
+    // ── Authentification administrateur ───────────────────────────
+    const TOKEN_KEY = 'cyf_admin_token';
+    const getToken = () => { try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; } };
+    const setToken = t => { try { t ? sessionStorage.setItem(TOKEN_KEY, t) : sessionStorage.removeItem(TOKEN_KEY); } catch {} };
+
+    // Toutes les requêtes du dashboard portent le jeton ; un 401 renvoie à l'écran de connexion
+    const publicApi = api;
+    api = async (path, options = {}) => {
+      const token = getToken();
+      const headers = { ...(options.headers || {}) };
+      if (token) headers.Authorization = 'Bearer ' + token;
+      try {
+        return await publicApi(path, { ...options, headers });
+      } catch (e) {
+        if (e.status === 401) showLogin('Session expirée, merci de vous reconnecter.');
+        throw e;
+      }
+    };
+
+    function showLogin(message = '') {
+      setToken(null);
+      document.getElementById('admin-main').style.display = 'none';
+      document.getElementById('logout-btn').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'block';
+      document.getElementById('login-error').textContent = message;
+      document.getElementById('admin-password').focus();
+    }
+
+    function showAdmin() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-main').style.display = 'block';
+      document.getElementById('logout-btn').style.display = 'inline-flex';
+      loadGames();
+    }
+
+    async function login() {
+      const input = document.getElementById('admin-password');
+      try {
+        const { token } = await publicApi('/api/auth/login', {
+          method: 'POST', body: JSON.stringify({ password: input.value })
+        });
+        setToken(token);
+        input.value = '';
+        showAdmin();
+      } catch (e) {
+        document.getElementById('login-error').textContent =
+          e.status === 401 ? 'Mot de passe incorrect.' : e.message;
+      }
+    }
+
+    function logout() { showLogin(); }
+
+    async function initAuth() {
+      if (!getToken()) return showLogin();
+      try {
+        await api('/api/auth/check');
+        showAdmin();
+      } catch (e) {
+        if (e.status !== 401) showLogin('Serveur injoignable.');
+      }
+    }
 
     // ── Créer une partie ─────────────────────────────────────────
     async function createGame() {
@@ -307,7 +383,7 @@
       });
     }
 
-    loadGames();
+    initAuth();
   </script>
 </body>
 </html>
