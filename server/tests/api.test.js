@@ -19,7 +19,13 @@ const fs        = require('node:fs');
 // ── Configuration test : base en mémoire ──────────────────────────
 process.env.NODE_ENV = 'test';
 const TEST_DB = path.join(__dirname, '..', 'db', 'test.sqlite');
-if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
+process.env.DB_PATH = TEST_DB;
+function removeTestDb() {
+  for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) {
+    if (fs.existsSync(f)) fs.unlinkSync(f);
+  }
+}
+removeTestDb();
 
 const app = require('../index');
 
@@ -38,7 +44,8 @@ before(async () => {
 
 after(async () => {
   await new Promise(resolve => server.close(resolve));
-  if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
+  app.locals.db.close();
+  removeTestDb();
 });
 
 async function req(method, urlPath, body = null) {

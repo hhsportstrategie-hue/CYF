@@ -19,7 +19,9 @@ const teamsRouter   = require('./routes/teams');
 const scoresRouter  = require('./routes/scores');
 
 // ── Base de données ───────────────────────────────────────────────
-const DB_PATH  = path.join(__dirname, 'db', 'cyf.sqlite');
+// Base séparée en test pour ne jamais toucher aux données de démo
+const DEFAULT_DB = process.env.NODE_ENV === 'test' ? 'test.sqlite' : 'cyf.sqlite';
+const DB_PATH  = process.env.DB_PATH || path.join(__dirname, 'db', DEFAULT_DB);
 const SCHEMA   = path.join(__dirname, 'db', 'schema.sql');
 
 const db = new Database(DB_PATH);
@@ -59,18 +61,22 @@ app.get('/api/health', (req, res) => {
 
 // ── SPA fallback — toutes les routes non-API vers index.html ─────
 app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'Not found' });
   }
+  res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
 });
 
 // ── Démarrage ─────────────────────────────────────────────────────
+// Le serveur ne démarre que s'il est lancé directement (pas à l'import par les tests)
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+if (require.main === module) app.listen(PORT, () => {
   console.log(`🏟️  CYF — Challenge Your Fans`);
   console.log(`📡  Serveur démarré sur http://localhost:${PORT}`);
   console.log(`🎮  Admin : http://localhost:${PORT}/admin.html`);
   console.log(`👥  Jeu   : http://localhost:${PORT}/game.html`);
 });
+
+app.locals.db = db;
 
 module.exports = app;
