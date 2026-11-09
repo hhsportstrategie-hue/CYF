@@ -111,7 +111,7 @@ CYF/
 │   │   ├── schema.sql      # Schéma SQLite
 │   │   └── seed.sql        # Données de démo
 │   └── tests/
-│       └── api.test.js     # 23 tests d'API
+│       └── api.test.js     # 31 tests d'API
 ├── client/                  # Interface joueur + admin (PWA)
 │   ├── index.html          # Accueil + rejoindre
 │   ├── game.html           # Partie joueur
@@ -165,6 +165,10 @@ Base URL : `http://localhost:3000/api`
   connexion admin (`ADMIN_PASSWORD`, session signée de 12 h,
   blocage 15 min après 5 mauvais mots de passe)
 - Le parcours joueur (rejoindre par code, jouer, classement) reste public
+- **Anti force brute côté joueurs** : après 5 mauvaises réponses à une
+  énigme, une seule tentative toutes les 30 s
+- Le classement public n'affiche pas les codes d'équipe
+- Tous les noms affichés (clubs, équipes, énigmes) sont échappés
 - Validation serveur insensible à la casse et aux espaces
 - CORS configurable via `.env` (CORS_ORIGINS en production)
 
@@ -176,13 +180,15 @@ Base URL : `http://localhost:3000/api`
 npm test
 ```
 
-23 tests d'API couvrent :
+31 tests d'API couvrent :
 - Health check
 - CRUD Games (7 tests)
 - Enigmas + sécurité (5 tests)
 - Teams + Scores + Leaderboard (4 tests)
 - Authentification admin (6 tests : routes protégées, parcours joueur
   public, jeton falsifié, blocage anti force brute)
+- Réponses joueurs (8 tests : erreur puis bonne réponse, pause après
+  5 essais, codes d'équipe absents du classement, énigme d'une autre partie)
 
 Les tests utilisent leur propre base (`server/db/test.sqlite`), supprimée
 à la fin : la base de démo n'est jamais modifiée.

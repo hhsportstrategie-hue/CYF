@@ -92,7 +92,7 @@
         el.innerHTML = active.map(g => `
           <div style="display:flex;align-items:center;gap:1rem;padding:.8rem 0;border-bottom:1px solid var(--border)">
             <div style="flex:1">
-              <strong>${g.club_name}</strong>
+              <strong>${escapeHtml(g.club_name)}</strong>
               <div style="font-size:.85rem;color:var(--muted)">${new Date(g.game_date).toLocaleDateString('fr-FR')}</div>
             </div>
             <span class="badge badge-active">En cours</span>

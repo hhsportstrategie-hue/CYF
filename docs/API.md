@@ -17,11 +17,11 @@ Vérifie qu'un jeton est encore valide. **Response 200** `{ "authenticated": tru
 
 ### Routes protégées 🔒 Admin
 `POST/PATCH/DELETE /games`, `GET /games/:id/stats`,
-`POST/PATCH/DELETE /enigmas`,
+`POST/PATCH/DELETE /enigmas`, `POST /enigmas/:id/check`,
 `GET /teams?game_id=`, `GET /teams/:id`, `POST /teams`, `DELETE /teams/:id`.
 
 Restent publiques (parcours joueur) : `GET /games`, `GET /games/:id`,
-`GET /enigmas`, `GET /enigmas/:id`, `POST /enigmas/:id/check`,
+`GET /enigmas`, `GET /enigmas/:id`,
 `GET /teams/join/:code`, `POST /scores/submit`, `GET /scores/leaderboard/:game_id`,
 `GET /scores/progress/:team_id`.
 
@@ -85,8 +85,9 @@ Créer une énigme.
 }
 ```
 
-### POST /enigmas/:id/check
-Vérifier une réponse (sans créer de score).
+### POST /enigmas/:id/check 🔒 Admin
+Tester une réponse (sans créer de score). Réservé à l'admin : ouvert aux
+joueurs, il permettrait d'essayer des réponses sans aucune limite.
 
 **Body** `{ "answer": "1972" }`
 **Response** `{ "valid": true, "points": 100, "time_bonus": 50 }`
@@ -124,7 +125,7 @@ Supprimer une équipe.
 ## 🏅 Scores
 
 ### GET /scores/leaderboard/:game_id
-Classement en temps réel.
+Classement en temps réel. Public : ne contient **pas** les codes d'équipe.
 
 **Response**
 ```json
@@ -139,6 +140,14 @@ Progression d'une équipe (énigmes résolues + points).
 ### POST /scores/submit
 Soumettre une réponse et calculer le score.
 
+- L'équipe et l'énigme doivent exister (**404**) et appartenir à la même partie (**400**).
+- Une mauvaise réponse ajoute une tentative ; l'énigme reste non résolue.
+- Bonus temps si `time_taken` < 120 s.
+- **Anti force brute** : après 5 mauvaises réponses sur une même énigme,
+  une équipe ne peut plus répondre qu'une fois toutes les 30 s → **429**
+  `{ "error": "Trop d'essais : patientez 12 s avant de réessayer.", "retry_after": 12 }`
+  (en-tête `Retry-After`).
+
 **Body**
 ```json
 { "team_id": "uuid", "enigma_id": "uuid", "answer": "1972", "time_taken": 87 }
@@ -151,7 +160,7 @@ Soumettre une réponse et calculer le score.
 
 **Response (incorrect)**
 ```json
-{ "valid": false, "message": "Mauvaise réponse, réessaie !" }
+{ "valid": false, "attempts": 2, "message": "Mauvaise réponse, réessaie !" }
 ```
 
 **Response (déjà résolu)**

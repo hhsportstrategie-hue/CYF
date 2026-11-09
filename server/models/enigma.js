@@ -49,7 +49,7 @@ class EnigmaModel {
     const enigma = this.findById(id);
     if (!enigma) return { valid: false, error: 'Enigma not found' };
     const correct = enigma.answer.trim().toLowerCase();
-    const given   = (userAnswer || '').trim().toLowerCase();
+    const given   = String(userAnswer ?? '').trim().toLowerCase();
     return { valid: correct === given, points: enigma.points, time_bonus: enigma.time_bonus };
   }
 }

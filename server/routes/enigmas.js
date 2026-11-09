@@ -43,8 +43,9 @@ module.exports = (models, { requireAdmin }) => {
     }
   });
 
-  // POST /api/enigmas/:id/check — vérifier une réponse
-  router.post('/:id/check', (req, res) => {
+  // POST /api/enigmas/:id/check — tester une réponse (admin uniquement :
+  // ouvert aux joueurs, ce serait un moyen d'essayer des réponses sans limite)
+  router.post('/:id/check', requireAdmin, (req, res) => {
     const { answer } = req.body;
     const result = Enigma.checkAnswer(req.params.id, answer);
     res.json(result);
